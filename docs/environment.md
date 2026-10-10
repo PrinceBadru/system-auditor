@@ -122,3 +122,73 @@ that fresh database/Redis connections are the cause, nor isolate connection
 setup cost from host contention, application CPU, or Docker scheduling. Confirm
 that hypothesis with a controlled A/B run using pooled/reused clients and
 resource/connection telemetry captured under comparable host load.
+
+## Five-run smoke-test repeat
+
+Run date: 2026-10-11 (local machine date). The unchanged
+[`scripts/k6/hello.js`](../scripts/k6/hello.js) smoke test was run five times
+sequentially against one isolated Compose deployment. Each run used k6 v2.2.0,
+one virtual user for 10 seconds, and the same HTTP 200, Postgres, and Redis
+checks. Readiness was confirmed before the first run; services were not
+restarted between repetitions. The Compose project used the documented
+per-service CPU/memory limits. Windows reported the Balanced power plan; battery
+telemetry and host CPU load were unavailable, so AC status and other host load
+are unknown. The repository revision was `f08ea6e`.
+
+| Run | Requests | Throughput | Median | p95 | Maximum | HTTP/check failures |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 144 | 14.25 req/s | 56.64 ms | 118.22 ms | 517.70 ms | 0 / 0 |
+| 2 | 121 | 11.98 req/s | 46.02 ms | 269.18 ms | 506.43 ms | 0 / 0 |
+| 3 | 195 | 19.43 req/s | 47.25 ms | 86.04 ms | 215.88 ms | 0 / 0 |
+| 4 | 172 | 16.97 req/s | 46.57 ms | 95.63 ms | 759.65 ms | 0 / 0 |
+| 5 | 131 | 13.03 req/s | 48.55 ms | 145.45 ms | 1,975.00 ms | 0 / 0 |
+
+Across all five runs, 763 requests succeeded and all 2,289 endpoint/dependency
+checks passed. Throughput ranged from 11.98 to 19.43 req/s. Median latency
+ranged from 46.02 to 56.64 ms, while p95 ranged from 86.04 to 269.18 ms
+(approximately 3.1x); the slowest individual request was 1.975 seconds.
+Latency percentiles are calculated from each run's raw `http_req_duration`
+samples with linear interpolation. The substantial p95 and throughput spread,
+including one long-tail outlier, means the prior single-run baseline is not a
+stable performance estimate. Functional success was consistent, but these
+short runs do not identify why timings varied; host load and power-source state
+were not controlled or captured.
+
+For the five run-level observations, sample CV is sample standard deviation
+divided by sample mean, expressed as a percentage:
+
+| Metric | Mean | Sample standard deviation | Sample CV |
+|---|---:|---:|---:|
+| Throughput | 15.13 req/s | 3.04 req/s | 20.08% |
+| Median latency | 49.01 ms | 4.37 ms | 8.92% |
+| p95 latency | 142.90 ms | 74.21 ms | 51.93% |
+
+The high p95 CV reflects substantial tail-latency variation across these five
+short runs. CV is descriptive, not an acceptance threshold or a cause analysis;
+the sample is small and host conditions were not controlled.
+
+Raw outputs, one file per repetition:
+
+- [Run 1](../artifacts/k6/hello-repeat-run-01.json)
+- [Run 2](../artifacts/k6/hello-repeat-run-02.json)
+- [Run 3](../artifacts/k6/hello-repeat-run-03.json)
+- [Run 4](../artifacts/k6/hello-repeat-run-04.json)
+- [Run 5](../artifacts/k6/hello-repeat-run-05.json)
+
+## Azure Retail Prices API probe
+
+On 2026-10-11 at 01:35 (+03:00), one unauthenticated HTTPS GET was sent
+directly to the public Azure Retail Prices API. The OData filter was
+`serviceName eq 'Virtual Machines' and armRegionName eq 'eastus' and priceType eq 'Consumption'`.
+The API returned HTTP 200 in 3,379.4 ms. The response's first page contained
+1,000 items and a next-page link, so this was a connectivity and response-shape
+check, not a complete price inventory.
+
+The first returned item was `Virtual Machines NCdsxlRTX6kv6 Windows`, SKU
+`NC320dsxlRTX6Kv6 Spot`, ARM SKU
+`Standard_NC320ds_xl_RTXPRO6000BSE_v6`, in `eastus`; its returned retail price
+was 5.785718 USD per hour, effective 2026-08-01. This is one live API record,
+not a pricing recommendation or a quote for an account. Microsoft documents
+the public API as unauthenticated in the
+[Azure Retail Prices REST API overview](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices).
+No credentials were used. No application integration was added or tested.
