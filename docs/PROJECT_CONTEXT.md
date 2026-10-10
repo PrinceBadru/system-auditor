@@ -6,15 +6,19 @@ Compact, repository-backed facts for agents starting in a fresh task or environm
 
 - **Name:** System Auditor (`system-auditor`).
 - **Purpose:** Examine systems and infrastructure, identify potential issues and improvement opportunities, and communicate environment-specific findings.
-- **Stage:** Early project; current documentation does not establish implemented audit capabilities.
+- **Stage:** Early Python package scaffold with a smoke test; audit capabilities are not implemented.
+- **Python:** Requires Python 3.11 or newer; GitHub Actions tests Python 3.11, 3.12, and 3.13.
 - **Unknown by design:** Supported environments, checks, report formats, implementation architecture, and runtime behavior have not yet been defined in the project records.
 
 ## Context map
 
+- [Canonical cross-agent instructions](../AGENTS.md) — shared project workflow and links to task-specific procedures.
+- [Gemini entry point](../GEMINI.md) — imports the canonical instructions.
+- [Claude entry point](../CLAUDE.md) — imports the canonical instructions.
+- [Copilot entry point](../.github/copilot-instructions.md) — points to the canonical instructions.
 - [README](../README.md) — project purpose, status, and intended direction.
 - [ADR index](adr/README.md) — architecture decisions; read relevant records before changing a recorded decision.
 - [Agent checkpoint](AGENT_STATE.md) — current multi-step task recovery state, if active.
-- [Project instructions](../.github/copilot-instructions.md) — concise always-on agent guidance.
 - [Project continuity skill](../.github/skills/project-continuity/SKILL.md) — startup, checkpoint, and handoff procedure.
 - [Secure engineering skill](../.github/skills/secure-engineering/SKILL.md) — security workflow for changes crossing components or trust boundaries.
 

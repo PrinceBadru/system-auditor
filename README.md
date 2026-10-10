@@ -6,9 +6,22 @@ insights.
 
 ## Project status
 
-This repository is at an early stage. The description above captures the
-project's direction; it does not imply that auditing capabilities are currently
-implemented.
+This repository currently contains a minimal Python package scaffold and a
+passing smoke test. Auditing capabilities are not implemented yet.
+
+## Development
+
+Requires Python 3.11 or newer.
+
+```powershell
+python -m pip install -e ".[dev]"
+ruff check .
+ruff format --check .
+python -m unittest discover -s tests -v
+```
+
+GitHub Actions runs Ruff lint and format checks plus the unit tests on Python
+3.11, 3.12, and 3.13.
 
 ## Intended direction
 
