@@ -51,9 +51,10 @@ from the repository root:
 winget install --id GrafanaLabs.k6 --exact
 New-Item -ItemType Directory -Force artifacts\k6
 k6 run --out json=artifacts/k6/hello-first-run.json scripts/k6/hello.js
+k6 run --out json=artifacts/k6/hello-ramp-first-run.json scripts/k6/hello-ramp.js
 ```
 
-The first run's machine details and raw output are recorded in
+The first smoke run and multi-VU ramp results are recorded in
 [docs/environment.md](docs/environment.md).
 
 ## Intended direction
