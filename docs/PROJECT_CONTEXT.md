@@ -7,9 +7,9 @@ Compact, repository-backed facts for agents starting in a fresh task or environm
 - **Name:** System Auditor (`system-auditor`).
 - **Purpose:** Examine systems and infrastructure, identify potential issues and improvement opportunities, and communicate environment-specific findings.
 - **Stage:** Early FastAPI scaffold with hello and dependency-readiness endpoints; audit capabilities are not implemented.
-- **Python:** Requires Python 3.11 or newer; GitHub Actions runs Ruff checks on Python 3.12.
+- **Python:** Requires Python 3.11 or newer; GitHub Actions runs Ruff checks on Python 3.12. See [ADR 0002](adr/0002-python.md).
 - **Development services:** Docker Compose provides FastAPI connected to Postgres 15 and Redis 7; all services have resource limits and healthchecks.
-- **Benchmark baseline:** First local k6 `/hello` smoke run and machine details are recorded in [docs/environment.md](environment.md); raw JSON is in `artifacts/k6/`.
+- **Benchmark baseline:** Local k6 `/hello` smoke runs, five-run repeatability results, and one Azure Retail Prices API probe are recorded in [docs/environment.md](environment.md); raw k6 JSON is in `artifacts/k6/`.
 - **Unknown by design:** Supported environments, checks, report formats, implementation architecture, and runtime behavior have not yet been defined in the project records.
 
 ## Context map
@@ -20,6 +20,7 @@ Compact, repository-backed facts for agents starting in a fresh task or environm
 - [Copilot entry point](../.github/copilot-instructions.md) — points to the canonical instructions.
 - [README](../README.md) — project purpose, status, and intended direction.
 - [ADR index](adr/README.md) — architecture decisions; read relevant records before changing a recorded decision.
+- [Project scope](adr/0001-project-name-and-scope.md) and [repeatable-run criteria](adr/0003-repeatable-run.md) — scope boundary and measurement protocol.
 - [Agent checkpoint](AGENT_STATE.md) — current multi-step task recovery state, if active.
 - [Project continuity skill](../.github/skills/project-continuity/SKILL.md) — startup, checkpoint, and handoff procedure.
 - [Secure engineering skill](../.github/skills/secure-engineering/SKILL.md) — security workflow for changes crossing components or trust boundaries.
