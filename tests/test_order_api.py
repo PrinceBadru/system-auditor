@@ -2,7 +2,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -13,6 +13,7 @@ from system_auditor.main import (
     OrderItemResponse,
     OrderResponse,
     OrderSummaryResponse,
+    _pool_settings,
     app,
 )
 
@@ -120,3 +121,44 @@ class OrderApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_pool_settings_accept_bounded_configuration(self) -> None:
+        with patch.dict(
+            "system_auditor.main.os.environ",
+            {
+                "POSTGRES_POOL_MIN_SIZE": "1",
+                "POSTGRES_POOL_MAX_SIZE": "4",
+                "POSTGRES_POOL_TIMEOUT_SECONDS": "3",
+                "POSTGRES_POOL_MAX_WAITING": "32",
+            },
+            clear=True,
+        ):
+            self.assertEqual(_pool_settings(), (1, 4, 3.0, 32))
+
+    def test_pool_settings_reject_invalid_sizes(self) -> None:
+        with (
+            patch.dict(
+                "system_auditor.main.os.environ",
+                {
+                    "POSTGRES_POOL_MIN_SIZE": "4",
+                    "POSTGRES_POOL_MAX_SIZE": "1",
+                    "POSTGRES_POOL_TIMEOUT_SECONDS": "3",
+                    "POSTGRES_POOL_MAX_WAITING": "32",
+                },
+                clear=True,
+            ),
+            self.assertRaises(ValueError),
+        ):
+            _pool_settings()
+
+    @patch("system_auditor.main._get_order", return_value=sample_order())
+    @patch("system_auditor.main._build_postgres_pool")
+    def test_lifespan_opens_and_closes_pool(self, build_pool: Mock, _: Mock) -> None:
+        pool = Mock(timeout=3)
+        build_pool.return_value = pool
+
+        with TestClient(app) as client:
+            self.assertEqual(client.get("/orders/12").status_code, 200)
+
+        pool.open.assert_called_once_with(wait=True, timeout=3)
+        pool.close.assert_called_once_with()

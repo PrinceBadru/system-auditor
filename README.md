@@ -96,6 +96,19 @@ Create requests accept a `user_id` and one to 100 unique item lines:
 }
 ```
 
+### API runtime limits
+
+The Compose API service is capped at 0.5 CPU and 512 MiB, which is below the
+requested one CPU ceiling. It runs one Uvicorn worker with a concurrency limit
+of 32, a five-second keep-alive timeout, and a 30-second graceful shutdown
+window.
+
+Each API worker owns one Postgres connection pool. The Compose defaults keep
+one ready connection, allow at most four connections, and cap the waiting queue
+at 32 requests. Adjust `POSTGRES_POOL_MIN_SIZE`, `POSTGRES_POOL_MAX_SIZE`,
+`POSTGRES_POOL_TIMEOUT_SECONDS`, or `POSTGRES_POOL_MAX_WAITING` only after
+accounting for the available database connection budget.
+
 ## Intended direction
 
 The project aims to help people understand the systems they operate by:

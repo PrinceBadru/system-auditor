@@ -7,6 +7,10 @@ services:
       POSTGRES_DB: system_auditor
       POSTGRES_USER: system_auditor
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_POOL_MIN_SIZE: "1"
+      POSTGRES_POOL_MAX_SIZE: "4"
+      POSTGRES_POOL_TIMEOUT_SECONDS: "3"
+      POSTGRES_POOL_MAX_WAITING: "32"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
     ports:

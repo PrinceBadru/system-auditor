@@ -1,15 +1,68 @@
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Literal
 
 import psycopg
 from fastapi import FastAPI, HTTPException, Path, Query, status
+from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool, PoolTimeout, TooManyRequests
 from pydantic import BaseModel, Field, model_validator
 from redis import Redis
 from redis.exceptions import RedisError
 
-app = FastAPI(title="System Auditor")
+
+def _postgres_conninfo() -> str:
+    return make_conninfo(
+        host=os.environ["POSTGRES_HOST"],
+        port=int(os.environ["POSTGRES_PORT"]),
+        dbname=os.environ["POSTGRES_DB"],
+        user=os.environ["POSTGRES_USER"],
+        password=os.environ["POSTGRES_PASSWORD"],
+    )
+
+
+def _pool_settings() -> tuple[int, int, float, int]:
+    min_size = int(os.environ.get("POSTGRES_POOL_MIN_SIZE", "1"))
+    max_size = int(os.environ.get("POSTGRES_POOL_MAX_SIZE", "4"))
+    timeout = float(os.environ.get("POSTGRES_POOL_TIMEOUT_SECONDS", "3"))
+    max_waiting = int(os.environ.get("POSTGRES_POOL_MAX_WAITING", "32"))
+    if min_size < 1 or max_size < min_size:
+        raise ValueError("Postgres pool sizes must be positive and ordered")
+    if timeout <= 0 or max_waiting < 0:
+        raise ValueError("Postgres pool timeout and queue size must be valid")
+    return min_size, max_size, timeout, max_waiting
+
+
+def _build_postgres_pool() -> ConnectionPool:
+    min_size, max_size, timeout, max_waiting = _pool_settings()
+    return ConnectionPool(
+        conninfo=_postgres_conninfo(),
+        kwargs={"connect_timeout": 3, "row_factory": dict_row},
+        min_size=min_size,
+        max_size=max_size,
+        timeout=timeout,
+        max_waiting=max_waiting,
+        max_idle=300,
+        max_lifetime=1_800,
+        num_workers=1,
+        open=False,
+    )
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    pool = _build_postgres_pool()
+    try:
+        pool.open(wait=True, timeout=pool.timeout)
+        application.state.postgres_pool = pool
+        yield
+    finally:
+        pool.close()
+
+
+app = FastAPI(title="System Auditor", lifespan=lifespan)
 
 
 class OrderLineCreate(BaseModel):
@@ -50,23 +103,22 @@ class OrderResponse(OrderSummaryResponse):
     items: list[OrderItemResponse]
 
 
-def _postgres_connection() -> psycopg.Connection:
-    return psycopg.connect(
-        host=os.environ["POSTGRES_HOST"],
-        port=int(os.environ["POSTGRES_PORT"]),
-        dbname=os.environ["POSTGRES_DB"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
-        connect_timeout=3,
-        row_factory=dict_row,
-    )
+def _postgres_connection():
+    return app.state.postgres_pool.connection()
 
 
 def _check_postgres() -> bool:
     try:
         with _postgres_connection() as connection:
             return connection.execute("SELECT 1 AS status").fetchone()["status"] == 1
-    except (KeyError, ValueError, psycopg.Error):
+    except (
+        AttributeError,
+        KeyError,
+        PoolTimeout,
+        TooManyRequests,
+        ValueError,
+        psycopg.Error,
+    ):
         return False
 
 
@@ -238,7 +290,7 @@ def health() -> dict[str, object]:
 def get_order(order_id: int = Path(gt=0)) -> OrderResponse:
     try:
         order = _get_order(order_id)
-    except (KeyError, ValueError, psycopg.Error) as error:
+    except (KeyError, PoolTimeout, TooManyRequests, ValueError, psycopg.Error) as error:
         raise _database_unavailable() from error
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -253,7 +305,7 @@ def list_orders_for_user(
 ) -> list[OrderSummaryResponse]:
     try:
         orders = _list_user_orders(user_id, limit, offset)
-    except (KeyError, ValueError, psycopg.Error) as error:
+    except (KeyError, PoolTimeout, TooManyRequests, ValueError, psycopg.Error) as error:
         raise _database_unavailable() from error
     if orders is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -264,7 +316,7 @@ def list_orders_for_user(
 def create_order(payload: OrderCreate) -> OrderResponse:
     try:
         order = _create_order(payload)
-    except (KeyError, ValueError, psycopg.Error) as error:
+    except (KeyError, PoolTimeout, TooManyRequests, ValueError, psycopg.Error) as error:
         raise _database_unavailable() from error
     if order is None:
         raise HTTPException(
