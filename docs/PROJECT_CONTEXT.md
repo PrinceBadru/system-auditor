@@ -9,6 +9,8 @@ Compact, repository-backed facts for agents starting in a fresh task or environm
 - **Stage:** Early FastAPI scaffold with hello and dependency-readiness endpoints; audit capabilities are not implemented.
 - **Python:** Requires Python 3.11 or newer; GitHub Actions runs Ruff checks on Python 3.12. See [ADR 0002](adr/0002-python.md).
 - **Development services:** Docker Compose provides FastAPI connected to Postgres 15 and Redis 7; all services have resource limits and healthchecks.
+- **Order seed data:** `scripts/db/schema.sql` defines a relational users/orders/items schema with `order_items`; `scripts/db/seed_orders.py` applies it and seeds 100,000 synthetic orders by default.
+- **Order API:** FastAPI exposes unauthenticated endpoints to retrieve an order, list a user's orders with bounded pagination, and create pending orders using active catalog items. See `src/system_auditor/main.py`.
 - **Benchmark baseline:** Local k6 `/hello` smoke runs, five-run repeatability results, and one Azure Retail Prices API probe are recorded in [docs/environment.md](environment.md); raw k6 JSON is in `artifacts/k6/`.
 - **Unknown by design:** Supported environments, checks, report formats, implementation architecture, and runtime behavior have not yet been defined in the project records.
 

@@ -57,6 +57,45 @@ k6 run --out json=artifacts/k6/hello-ramp-first-run.json scripts/k6/hello-ramp.j
 The first smoke run and multi-VU ramp results are recorded in
 [docs/environment.md](docs/environment.md).
 
+### Create and seed the order schema
+
+The relational order schema is defined in
+[`scripts/db/schema.sql`](scripts/db/schema.sql). It creates `users`, `items`,
+`orders`, and `order_items`, with foreign keys from orders to users and order
+lines to both orders and items.
+
+With the Compose stack running and `POSTGRES_PASSWORD` set in your shell, seed
+100,000 synthetic orders:
+
+```powershell
+$env:POSTGRES_HOST = "localhost"
+$env:POSTGRES_PORT = "5432"
+$env:POSTGRES_DB = "system_auditor"
+$env:POSTGRES_USER = "system_auditor"
+$env:POSTGRES_PASSWORD = "replace-with-your-local-development-password"
+python scripts/db/seed_orders.py --reset
+```
+
+The seed command defaults to 10,000 users, 1,000 items, and 100,000 orders. Use
+`--orders`, `--users`, or `--items` to change those counts.
+
+### Order API
+
+After applying the schema and seeding data, the API provides:
+
+- `GET /orders/{order_id}` to retrieve an order and its line items.
+- `GET /users/{user_id}/orders?limit=50&offset=0` to retrieve a user's orders.
+- `POST /orders` to create a pending order from existing active items.
+
+Create requests accept a `user_id` and one to 100 unique item lines:
+
+```json
+{
+  "user_id": 1,
+  "items": [{"item_id": 1, "quantity": 2}]
+}
+```
+
 ## Intended direction
 
 The project aims to help people understand the systems they operate by:
