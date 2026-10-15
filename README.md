@@ -52,10 +52,16 @@ winget install --id GrafanaLabs.k6 --exact
 New-Item -ItemType Directory -Force artifacts\k6
 k6 run --out json=artifacts/k6/hello-first-run.json scripts/k6/hello.js
 k6 run --out json=artifacts/k6/hello-ramp-first-run.json scripts/k6/hello-ramp.js
+k6 run --out json=artifacts/k6/hello-models.json scripts/k6/hello-models.js
 ```
 
 The first smoke run and multi-VU ramp results are recorded in
 [docs/environment.md](docs/environment.md).
+
+The models run sequentially: a 30-second open-model constant arrival rate of
+10 iterations per second, followed by a 30-second closed-model scenario with
+4 fixed virtual users. The open-model scenario allows up to 10 VUs and fails
+the run if k6 drops any scheduled iterations.
 
 ### Create and seed the order schema
 
