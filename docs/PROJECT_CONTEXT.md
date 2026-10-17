@@ -12,7 +12,7 @@ Compact, repository-backed facts for agents starting in a fresh task or environm
 - **Order seed data:** `scripts/db/schema.sql` defines a relational users/orders/items schema with `order_items`; `scripts/db/seed_orders.py` applies it and seeds 100,000 synthetic orders by default.
 - **Order API:** FastAPI exposes unauthenticated endpoints to retrieve an order, list a user's orders with bounded pagination, and create pending orders using active catalog items. See `src/system_auditor/main.py`.
 - **API runtime:** The Compose API service is limited to 0.5 CPU and 512 MiB. It runs one Uvicorn worker with a bounded concurrency of 32 and uses a Postgres pool of one to four connections with one pool worker.
-- **Benchmark baseline:** Local k6 `/hello` smoke runs, five-run repeatability results, and one Azure Retail Prices API probe are recorded in [docs/environment.md](environment.md); raw k6 JSON is in `artifacts/k6/`.
+- **Benchmark baseline:** Local k6 `/hello` smoke runs, five-run repeatability results, and one Azure Retail Prices API probe are recorded in [docs/environment.md](environment.md); raw k6 JSON is in `artifacts/k6/`. [The five-rate sweep runner](../scripts/k6/run_baseline_sweep.py) captures per-rate latency, errors, and Compose CPU/memory; sweep measurements have not yet been recorded.
 - **Unknown by design:** Supported environments, checks, report formats, implementation architecture, and runtime behavior have not yet been defined in the project records.
 
 ## Context map

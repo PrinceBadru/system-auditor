@@ -63,6 +63,28 @@ The models run sequentially: a 30-second open-model constant arrival rate of
 4 fixed virtual users. The open-model scenario allows up to 10 VUs and fails
 the run if k6 drops any scheduled iterations.
 
+### Run the five-rate baseline sweep
+
+With the Compose stack running and healthy, set `POSTGRES_PASSWORD` as
+described above and run from the repository root:
+
+```powershell
+python scripts/k6/run_baseline_sweep.py
+```
+
+The sweep runs sequential 30-second open-model stages at 5, 10, 15, 20, and
+25 iterations per second, with a five-second cooldown between stages. It records
+k6 p50/p95/p99 latency, HTTP and check failures, and dropped iterations for
+each rate. While each stage runs, it samples API, Postgres, and Redis container
+CPU and memory approximately once per second.
+
+Each run writes to a new timestamped directory under `artifacts/k6/`. The
+`baseline-summary.csv` and `.json` files contain per-rate results; the
+`resource-samples.csv` file has timestamped raw container samples. Raw k6
+metrics, k6 summaries, and process logs are kept alongside them. Resource
+averages and maxima are calculated from the samples collected during each
+rate's active stage.
+
 ### Create and seed the order schema
 
 The relational order schema is defined in
